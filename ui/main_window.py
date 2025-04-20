@@ -1,6 +1,6 @@
 """
 Main application window for the Master Kilominx Solver.
-Handles the primary user interactions and UI flow.
+Revised to use the proper 20-sticker color picker.
 """
 
 from PyQt5.QtWidgets import (QMainWindow, QTabWidget, QAction, QFileDialog, 
@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QTabWidget, QAction, QFileDialog,
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
-from ui.color_picker import ColorPickerWidget
+from ui.color_picker import MasterKilominxColorPicker  # Updated import
 from ui.image_input import ImageInputWidget
 from ui.solution_display import SolutionDisplayWidget
 from solver.state_validator import validate_kilominx_state
@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("Master Kilominx Solver")
-        self.setMinimumSize(900, 700)
+        self.setMinimumSize(1000, 700)  # Slightly larger to accommodate pentagonal layout
         
         # Initialize cube state
         self.cube_state = None
@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.tab_widget)
         
         # Create and add tabs
-        self.manual_input_tab = ColorPickerWidget(self._on_manual_state_ready)
+        self.manual_input_tab = MasterKilominxColorPicker(self._on_manual_state_ready)  # Updated
         self.image_input_tab = ImageInputWidget(self._on_image_processed)
         self.solution_tab = SolutionDisplayWidget()
         
@@ -52,6 +52,8 @@ class MainWindow(QMainWindow):
         
         # Initially disable the solution tab
         self.tab_widget.setTabEnabled(2, False)
+        
+    # Remaining methods stay the same as before
         
     def _create_menu(self):
         """Create the application menu bar."""
