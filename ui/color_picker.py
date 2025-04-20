@@ -1,12 +1,12 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
-Correct layout: Black star center (mechanism) + 5 edges with 4 stickers each = 20 stickers.
+Layout: Pentagon center (mechanism) + 5 edge pieces with 4 stickers each = 20 stickers.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
                            QLabel, QVBoxLayout, QHBoxLayout, QGroupBox,
                            QScrollArea, QSizePolicy, QFrame)
-from PyQt5.QtGui import QColor, QPalette, QPainter, QPolygon, QPainterPath
+from PyQt5.QtGui import QColor, QPalette, QPainter, QPolygon, QPainterPath, QPen
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 import math
 
@@ -33,47 +33,39 @@ class PentagonalSticker(QPushButton):
         """Get the button's current color."""
         return self.color
 
-class StarWidget(QWidget):
-    """Widget that displays a black star in the center."""
+class PentagonWidget(QWidget):
+    """Widget that displays a pentagon in the center."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(100, 100)
+        self.setFixedSize(80, 80)
         
     def paintEvent(self, event):
-        """Draw a 5-pointed star."""
+        """Draw a pentagon."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
-        # Set black color for the star
-        painter.setBrush(QColor(0, 0, 0))
-        painter.setPen(Qt.NoPen)
+        # Set black fill and gray outline for the pentagon
+        painter.setBrush(QColor(50, 50, 50))
+        painter.setPen(QPen(QColor(128, 128, 128), 2))
         
-        # Create a 5-pointed star
-        center = QPoint(50, 50)
-        outer_radius = 45
-        inner_radius = 20
+        # Create a pentagon
+        center = QPoint(40, 40)
+        radius = 35
         
-        star_path = QPainterPath()
+        pentagon_path = QPainterPath()
         for i in range(5):
-            # Outer point
-            outer_angle = i * 2 * math.pi / 5 - math.pi / 2
-            outer_x = center.x() + outer_radius * math.cos(outer_angle)
-            outer_y = center.y() + outer_radius * math.sin(outer_angle)
+            angle = i * 2 * math.pi / 5 - math.pi / 2
+            x = center.x() + radius * math.cos(angle)
+            y = center.y() + radius * math.sin(angle)
             
             if i == 0:
-                star_path.moveTo(outer_x, outer_y)
+                pentagon_path.moveTo(x, y)
             else:
-                star_path.lineTo(outer_x, outer_y)
-            
-            # Inner point
-            inner_angle = (i + 0.5) * 2 * math.pi / 5 - math.pi / 2
-            inner_x = center.x() + inner_radius * math.cos(inner_angle)
-            inner_y = center.y() + inner_radius * math.sin(inner_angle)
-            star_path.lineTo(inner_x, inner_y)
+                pentagon_path.lineTo(x, y)
         
-        star_path.closeSubpath()
-        painter.drawPath(star_path)
+        pentagon_path.closeSubpath()
+        painter.drawPath(pentagon_path)
 
 class PentagonalFaceWidget(QWidget):
     """Widget representing a pentagonal face with 5 edges, 4 stickers per edge."""
@@ -98,60 +90,62 @@ class PentagonalFaceWidget(QWidget):
         # Center of the pentagon
         center_x, center_y = 200, 200
         
-        # Add the black star mechanism (visual only, not interactive)
-        star_widget = StarWidget(container)
-        star_widget.move(center_x - 50, center_y - 50)
+        # Add the pentagon mechanism (visual only, not interactive)
+        pentagon_widget = PentagonWidget(container)
+        pentagon_widget.move(center_x - 40, center_y - 40)
         
         # Create 5 edges, each with 4 stickers
         for edge in range(5):
+            # Each edge is at 72-degree increments
             angle = edge * 2 * math.pi / 5 - math.pi / 2  # Start from top
             
             # For each edge, position 4 stickers in a trapezoidal pattern
-            # Arranged as: corner, edge, side, inner
+            # Arranged from outside to inside: corner, outer edge, inner edge, center edge
             
-            # 1. Corner sticker - outermost point of the pentagonal face
+            # Base positions for this edge
+            base_angle = angle
+            
+            # 1. Corner sticker - outermost point, exactly on pentagon vertex
             corner_radius = 170
-            corner_x = int(center_x + corner_radius * math.cos(angle) - 15)
-            corner_y = int(center_y + corner_radius * math.sin(angle) - 15)
+            corner_x = int(center_x + corner_radius * math.cos(base_angle) - 15)
+            corner_y = int(center_y + corner_radius * math.sin(base_angle) - 15)
             corner_sticker = PentagonalSticker(edge, 0, container)
             corner_sticker.move(corner_x, corner_y)
             corner_sticker.clicked.connect(lambda checked, e=edge, s=0: 
                                         self.on_sticker_clicked(self.face_id, e, s))
             self.stickers.append(corner_sticker)
             
-            # 2. Edge sticker - along the pentagon edge
+            # 2. Outer edge sticker - along the pentagon's outer edge
             edge_radius = 140
             next_angle = (edge + 1) * 2 * math.pi / 5 - math.pi / 2
-            edge_angle = (angle + next_angle) / 2
-            edge_x = int(center_x + edge_radius * math.cos(edge_angle) - 15)
-            edge_y = int(center_y + edge_radius * math.sin(edge_angle) - 15)
-            edge_sticker = PentagonalSticker(edge, 1, container)
-            edge_sticker.move(edge_x, edge_y)
-            edge_sticker.clicked.connect(lambda checked, e=edge, s=1: 
-                                      self.on_sticker_clicked(self.face_id, e, s))
-            self.stickers.append(edge_sticker)
+            edge_angle = (base_angle + next_angle) / 2
+            outer_edge_x = int(center_x + edge_radius * math.cos(edge_angle) - 15)
+            outer_edge_y = int(center_y + edge_radius * math.sin(edge_angle) - 15)
+            outer_edge_sticker = PentagonalSticker(edge, 1, container)
+            outer_edge_sticker.move(outer_edge_x, outer_edge_y)
+            outer_edge_sticker.clicked.connect(lambda checked, e=edge, s=1: 
+                                            self.on_sticker_clicked(self.face_id, e, s))
+            self.stickers.append(outer_edge_sticker)
             
-            # 3. Side sticker - side of the trapezoid
-            side_radius = 110
-            side_offset = math.pi / 10  # Offset to position along the edge
-            side_angle = angle + side_offset
-            side_x = int(center_x + side_radius * math.cos(side_angle) - 15)
-            side_y = int(center_y + side_radius * math.sin(side_angle) - 15)
-            side_sticker = PentagonalSticker(edge, 2, container)
-            side_sticker.move(side_x, side_y)
-            side_sticker.clicked.connect(lambda checked, e=edge, s=2: 
-                                      self.on_sticker_clicked(self.face_id, e, s))
-            self.stickers.append(side_sticker)
+            # 3. Inner edge sticker - midway between outer edge and center
+            inner_edge_radius = 110
+            inner_edge_x = int(center_x + inner_edge_radius * math.cos(edge_angle) - 15)
+            inner_edge_y = int(center_y + inner_edge_radius * math.sin(edge_angle) - 15)
+            inner_edge_sticker = PentagonalSticker(edge, 2, container)
+            inner_edge_sticker.move(inner_edge_x, inner_edge_y)
+            inner_edge_sticker.clicked.connect(lambda checked, e=edge, s=2: 
+                                            self.on_sticker_clicked(self.face_id, e, s))
+            self.stickers.append(inner_edge_sticker)
             
-            # 4. Inner sticker - closest to the star
-            inner_radius = 80
-            inner_x = int(center_x + inner_radius * math.cos(angle) - 15)
-            inner_y = int(center_y + inner_radius * math.sin(angle) - 15)
-            inner_sticker = PentagonalSticker(edge, 3, container)
-            inner_sticker.move(inner_x, inner_y)
-            inner_sticker.clicked.connect(lambda checked, e=edge, s=3: 
-                                       self.on_sticker_clicked(self.face_id, e, s))
-            self.stickers.append(inner_sticker)
+            # 4. Center edge sticker - closest to the central pentagon
+            center_edge_radius = 80
+            center_edge_x = int(center_x + center_edge_radius * math.cos(base_angle) - 15)
+            center_edge_y = int(center_y + center_edge_radius * math.sin(base_angle) - 15)
+            center_edge_sticker = PentagonalSticker(edge, 3, container)
+            center_edge_sticker.move(center_edge_x, center_edge_y)
+            center_edge_sticker.clicked.connect(lambda checked, e=edge, s=3: 
+                                             self.on_sticker_clicked(self.face_id, e, s))
+            self.stickers.append(center_edge_sticker)
     
     def get_color_state(self):
         """Return the color state of all stickers."""
@@ -201,7 +195,7 @@ class MasterKilominxColorPicker(QWidget):
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Each face has 5 edges around a black star mechanism, with 4 stickers per edge. "
+            "Each face has 5 edges around a central pentagon mechanism, with 4 stickers per edge. "
             "Total: 20 stickers per face."
         )
         instructions.setWordWrap(True)
