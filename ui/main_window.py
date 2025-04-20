@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (QMainWindow, QTabWidget, QAction, QFileDialog,
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
-from ui.color_picker import MasterKilominxColorPicker  # Updated import
+# Make sure you have the correct import
+from ui.color_picker import MasterKilominxColorPicker
 from ui.image_input import ImageInputWidget
 from ui.solution_display import SolutionDisplayWidget
 from solver.state_validator import validate_kilominx_state
@@ -42,7 +43,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.tab_widget)
         
         # Create and add tabs
-        self.manual_input_tab = MasterKilominxColorPicker(self._on_manual_state_ready)  # Updated
+        self.manual_input_tab = MasterKilominxColorPicker(self._on_manual_state_ready)
         self.image_input_tab = ImageInputWidget(self._on_image_processed)
         self.solution_tab = SolutionDisplayWidget()
         
@@ -52,8 +53,6 @@ class MainWindow(QMainWindow):
         
         # Initially disable the solution tab
         self.tab_widget.setTabEnabled(2, False)
-        
-    # Remaining methods stay the same as before
         
     def _create_menu(self):
         """Create the application menu bar."""
@@ -170,5 +169,5 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, "About Master Kilominx Solver",
                          "Master Kilominx Solver v1.0\n\n"
                          "A tool to solve a 4x4 dodecahedral Rubik's cube.\n"
-                         "Created using PyQt5 and Python.\n\n"
+                         "Created with PyQt5 and Python.\n\n"
                          "Created by Cakanaka for a Technogel.")

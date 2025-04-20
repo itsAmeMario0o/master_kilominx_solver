@@ -1,19 +1,22 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
+Revised for proper 20-sticker pentagonal face layout.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
                            QLabel, QVBoxLayout, QHBoxLayout, QGroupBox,
                            QScrollArea, QSizePolicy, QFrame)
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QColor, QPalette, QPainter, QPolygon
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
+import math
 
-class ColorButton(QPushButton):
-    """Button representing a sticker on the Kilominx."""
+class PentagonalSticker(QPushButton):
+    """Button representing a sticker on the Kilominx pentagonal face."""
     
-    def __init__(self, parent=None):
+    def __init__(self, position_type, parent=None):
         super().__init__(parent)
-        self.setFixedSize(30, 30)
+        self.position_type = position_type  # corner, edge, middle_edge, center_piece, super_center
+        self.setFixedSize(40, 40)
         self.setColor(QColor(200, 200, 200))  # Default gray
         
     def setColor(self, color):
@@ -29,8 +32,134 @@ class ColorButton(QPushButton):
         """Get the button's current color."""
         return self.color
 
-class ColorPickerWidget(QWidget):
-    """Widget for manually selecting colors for each face of the Master Kilominx."""
+class PentagonalFaceWidget(QWidget):
+    """Widget representing a pentagonal face with proper sticker layout."""
+    
+    def __init__(self, face_id, on_sticker_clicked_callback, parent=None):
+        super().__init__(parent)
+        self.face_id = face_id
+        self.on_sticker_clicked = on_sticker_clicked_callback
+        self.stickers = []
+        self.setMinimumSize(300, 300)
+        self._setup_pentagonal_layout()
+    
+    def _setup_pentagonal_layout(self):
+        """Create a proper pentagonal layout with 20 stickers:
+        - 5 corners (on the pentagon vertices)
+        - 5 edges (along the pentagon edges)
+        - 5 middle edges (inside the edges)
+        - 5 center pieces (forming a smaller pentagon)
+        - 1 super center (in the middle)
+        """
+        layout = QVBoxLayout(self)
+        
+        # Create a container for absolute positioning
+        container = QWidget()
+        container.setFixedSize(300, 300)
+        layout.addWidget(container)
+        
+        # Center of the pentagon
+        center_x, center_y = 150, 150
+        radius = 110  # Main pentagon radius
+        
+        # Create stickers in layers from outer to inner
+        
+        # 1. Corner stickers (5) - on pentagon vertices
+        for i in range(5):
+            angle = i * 2 * math.pi / 5 - math.pi / 2  # Start from top
+            x = int(center_x + radius * math.cos(angle))
+            y = int(center_y + radius * math.sin(angle))
+            
+            sticker = PentagonalSticker('corner', container)
+            sticker.move(x-20, y-20)
+            sticker.clicked.connect(lambda checked, idx=i: 
+                                  self.on_sticker_clicked(self.face_id, 'corner', idx))
+            self.stickers.append(sticker)
+        
+        # 2. Edge stickers (5) - midpoints between corners
+        for i in range(5):
+            angle_start = i * 2 * math.pi / 5 - math.pi / 2
+            angle_end = (i + 1) * 2 * math.pi / 5 - math.pi / 2
+            
+            x1 = center_x + radius * math.cos(angle_start)
+            y1 = center_y + radius * math.sin(angle_start)
+            x2 = center_x + radius * math.cos(angle_end)
+            y2 = center_y + radius * math.sin(angle_end)
+            
+            x = int((x1 + x2) / 2)
+            y = int((y1 + y2) / 2)
+            
+            sticker = PentagonalSticker('edge', container)
+            sticker.move(x-20, y-20)
+            sticker.clicked.connect(lambda checked, idx=i: 
+                                  self.on_sticker_clicked(self.face_id, 'edge', idx))
+            self.stickers.append(sticker)
+        
+        # 3. Middle edge stickers (5) - closer to center than edges
+        inner_radius = radius * 0.6
+        for i in range(5):
+            angle_start = i * 2 * math.pi / 5 - math.pi / 2
+            angle_end = (i + 1) * 2 * math.pi / 5 - math.pi / 2
+            
+            x1 = center_x + inner_radius * math.cos(angle_start)
+            y1 = center_y + inner_radius * math.sin(angle_start)
+            x2 = center_x + inner_radius * math.cos(angle_end)
+            y2 = center_y + inner_radius * math.sin(angle_end)
+            
+            x = int((x1 + x2) / 2)
+            y = int((y1 + y2) / 2)
+            
+            sticker = PentagonalSticker('middle_edge', container)
+            sticker.move(x-20, y-20)
+            sticker.clicked.connect(lambda checked, idx=i: 
+                                  self.on_sticker_clicked(self.face_id, 'middle_edge', idx))
+            self.stickers.append(sticker)
+        
+        # 4. Center pieces (5) - forming a small pentagon around the super center
+        center_radius = radius * 0.3
+        for i in range(5):
+            angle = i * 2 * math.pi / 5 - math.pi / 2
+            x = int(center_x + center_radius * math.cos(angle))
+            y = int(center_y + center_radius * math.sin(angle))
+            
+            sticker = PentagonalSticker('center_piece', container)
+            sticker.move(x-20, y-20)
+            sticker.clicked.connect(lambda checked, idx=i: 
+                                  self.on_sticker_clicked(self.face_id, 'center_piece', idx))
+            self.stickers.append(sticker)
+        
+        # 5. Super center sticker (1) - in the middle
+        sticker = PentagonalSticker('super_center', container)
+        sticker.move(center_x-20, center_y-20)
+        sticker.clicked.connect(lambda checked: 
+                              self.on_sticker_clicked(self.face_id, 'super_center', 0))
+        self.stickers.append(sticker)
+    
+    def get_color_state(self):
+        """Return the color state of all stickers."""
+        return [sticker.getColor().getRgb()[:3] for sticker in self.stickers]
+    
+    def set_sticker_color(self, sticker_type, index, color):
+        """Set the color of a specific sticker."""
+        # Map sticker type and index to the correct sticker in our list
+        if sticker_type == 'corner':
+            sticker_idx = index
+        elif sticker_type == 'edge':
+            sticker_idx = 5 + index
+        elif sticker_type == 'middle_edge':
+            sticker_idx = 10 + index
+        elif sticker_type == 'center_piece':
+            sticker_idx = 15 + index
+        elif sticker_type == 'super_center':
+            sticker_idx = 19  # Fixed index
+        else:
+            return
+        
+        if 0 <= sticker_idx < len(self.stickers):
+            self.stickers[sticker_idx].setColor(color)
+
+class MasterKilominxColorPicker(QWidget):  # This is the class that's being imported
+    """Updated color picker widget for proper Master Kilominx with 20 stickers per face."""
     
     state_ready = pyqtSignal(dict)
     
@@ -56,8 +185,7 @@ class ColorPickerWidget(QWidget):
         self.on_state_ready_callback = on_state_ready_callback
         self.current_color = QColor(255, 255, 255)  # Start with white
         self.current_face = 0  # Start with face 0
-        self.face_buttons = []
-        self.face_frames = []  # NEW: Keep track of face frames/containers
+        self.face_widgets = []
         
         self._setup_ui()
         
@@ -68,7 +196,7 @@ class ColorPickerWidget(QWidget):
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Use the face selector to switch between the 12 faces of the Master Kilominx."
+            "Each face has 20 stickers: 5 corners, 5 edges, 5 middle edges, 5 center pieces, and 1 super center."
         )
         instructions.setWordWrap(True)
         main_layout.addWidget(instructions)
@@ -100,7 +228,7 @@ class ColorPickerWidget(QWidget):
         color_indicator_layout.addWidget(QLabel("Current Color:"))
         
         self.color_indicator = QPushButton()
-        self.color_indicator.setFixedSize(30, 30)
+        self.color_indicator.setFixedSize(40, 40)
         self.color_indicator.setEnabled(False)
         palette = self.color_indicator.palette()
         palette.setColor(QPalette.Button, self.current_color)
@@ -126,38 +254,20 @@ class ColorPickerWidget(QWidget):
         
         main_layout.addLayout(face_selector_layout)
         
-        # Face grid (4x4 for Master Kilominx)
-        face_container = QWidget()
-        self.face_layout = QVBoxLayout(face_container)
-        self.face_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Create a 4x4 grid for each face - NEW: Using QFrame for each face
-        for face in range(12):
-            face_frame = QFrame()
-            face_frame_layout = QGridLayout(face_frame)
-            face_frame_layout.setSpacing(2)
-            face_buttons = []
-            
-            for row in range(4):
-                row_buttons = []
-                for col in range(4):
-                    btn = ColorButton()
-                    btn.clicked.connect(lambda checked, r=row, c=col, f=face: 
-                                       self._set_sticker_color(f, r, c))
-                    face_frame_layout.addWidget(btn, row, col)
-                    row_buttons.append(btn)
-                face_buttons.append(row_buttons)
-            
-            self.face_buttons.append(face_buttons)
-            self.face_frames.append(face_frame)
-            
-            # Initially hide all faces except the first
-            face_frame.setVisible(face == 0)
-            self.face_layout.addWidget(face_frame)
-            
-        # Add the face container to the main layout with a scroll area
+        # Pentagon face widget container
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        
+        face_container = QWidget()
+        self.face_layout = QVBoxLayout(face_container)
+        
+        # Create pentagonal face widgets
+        for face in range(12):
+            face_widget = PentagonalFaceWidget(face, self._on_sticker_clicked)
+            face_widget.setVisible(face == 0)  # Show only the first face initially
+            self.face_widgets.append(face_widget)
+            self.face_layout.addWidget(face_widget)
+        
         scroll_area.setWidget(face_container)
         main_layout.addWidget(scroll_area, 1)
         
@@ -177,34 +287,22 @@ class ColorPickerWidget(QWidget):
         """Switch between faces of the Master Kilominx."""
         self.current_face = index
         
-        # Update visibility of face frames
-        for i, face_frame in enumerate(self.face_frames):
-            face_frame.setVisible(i == index)
-        
-    def _set_sticker_color(self, face, row, col):
-        """Set the color of a sticker on the current face."""
-        if face != self.current_face:
-            # This should not happen with the current UI,
-            # but included for potential future changes
-            return
+        # Update visibility of face widgets
+        for i, face_widget in enumerate(self.face_widgets):
+            face_widget.setVisible(i == index)
             
-        button = self.face_buttons[face][row][col]
-        button.setColor(self.current_color)
+    def _on_sticker_clicked(self, face_id, sticker_type, index):
+        """Handle sticker click to apply current color."""
+        if face_id == self.current_face:
+            self.face_widgets[face_id].set_sticker_color(sticker_type, index, self.current_color)
         
     def _on_solve_clicked(self):
         """Prepare the cube state and emit the state_ready signal."""
-        # Collect the colors from all stickers
+        # Collect the colors from all faces
         cube_state = {}
         
-        for face_idx, face_buttons in enumerate(self.face_buttons):
-            face_colors = []
-            for row_buttons in face_buttons:
-                for button in row_buttons:
-                    # Store the RGB values of each sticker
-                    color = button.getColor()
-                    face_colors.append([color.red(), color.green(), color.blue()])
-            
-            cube_state[f"face_{face_idx}"] = face_colors
+        for face_idx, face_widget in enumerate(self.face_widgets):
+            cube_state[f"face_{face_idx}"] = face_widget.get_color_state()
             
         # Call the callback with the collected state
         self.on_state_ready_callback(cube_state)
