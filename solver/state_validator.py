@@ -1,6 +1,6 @@
 """
 Validation logic for Master Kilominx cube states.
-Updated to match the accurate sticker layout.
+Corrected to validate 20 stickers per face (excluding the black center mechanism).
 """
 
 from collections import Counter
@@ -20,11 +20,11 @@ def validate_kilominx_state(state):
     if len(state) != 12:
         return False, f"Invalid number of faces: {len(state)}. Expected 12 faces."
     
-    # 2. Check if each face has exactly 16 stickers
-    # The actual layout has: 1 center + 5 corners + 5 edges + 5 trapezoids = 16 stickers
+    # 2. Check if each face has exactly 20 stickers
+    # Each face has 5 groups of 4 stickers each (the black center is not counted)
     for face_idx, stickers in state.items():
-        if len(stickers) != 16:
-            return False, f"Face {face_idx} has {len(stickers)} stickers. Expected 16 stickers."
+        if len(stickers) != 20:
+            return False, f"Face {face_idx} has {len(stickers)} stickers. Expected 20 stickers."
     
     # 3. Count the number of stickers of each color
     all_stickers = []
@@ -49,17 +49,11 @@ def validate_kilominx_state(state):
     if len(color_counter) != 12:
         return False, f"Found {len(color_counter)} colors. Expected 12 colors."
     
-    # Check if each color appears exactly 16 times
+    # Check if each color appears exactly 20 times
     for color, count in color_counter.items():
-        if count != 16:
+        if count != 20:
             color_str = str(color)
-            return False, f"Color {color_str} appears {count} times. Expected 16 occurrences."
-    
-    # 4. Check center piece validity
-    # The first sticker of each face should represent the center color
-    for face_idx, stickers in state.items():
-        if not stickers:
-            return False, f"Face {face_idx} has no stickers."
+            return False, f"Color {color_str} appears {count} times. Expected 20 occurrences."
     
     # If all checks pass, the state is valid
     return True, "The cube state is valid."
@@ -90,8 +84,8 @@ def check_color_distribution(state):
     
     color_counts = Counter(hashable_stickers)
     
-    # A Master Kilominx should have 12 colors with 16 stickers each
-    expected_count = 16
+    # A Master Kilominx should have 12 colors with 20 stickers each
+    expected_count = 20
     
     # Check if each color appears the expected number of times
     for color, count in color_counts.items():
