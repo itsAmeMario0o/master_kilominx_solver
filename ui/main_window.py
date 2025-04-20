@@ -168,6 +168,6 @@ class MainWindow(QMainWindow):
         """Show the about dialog."""
         QMessageBox.about(self, "About Master Kilominx Solver",
                          "Master Kilominx Solver v1.0\n\n"
-                         "A tool to solve a 4x4 dodecahedral Rubik's cube.\n"
+                         "A tool to solve a dodecahedral Rubik's cube.\n"
                          "Created with PyQt5 and Python.\n\n"
                          "Created by Cakanaka for a Technogel.")

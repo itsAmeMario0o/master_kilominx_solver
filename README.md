@@ -1,6 +1,6 @@
 # Master Kilominx Solver
 
-A Python application to solve a 4x5 dodecahedral Rubik's cube (Master Kilominx).
+A Python application to solve a dodecahedral Rubik's cube (Master Kilominx).
 
 ## Features
 
