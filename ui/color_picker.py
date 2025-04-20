@@ -1,6 +1,6 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
-Layout: Black star center with 5 groups of 4 stickers each.
+Correct layout: Black star center (mechanism) + 5 edges with 4 stickers each = 20 stickers.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
@@ -13,10 +13,10 @@ import math
 class PentagonalSticker(QPushButton):
     """Button representing a sticker on the Kilominx pentagonal face."""
     
-    def __init__(self, group_id, sticker_id, parent=None):
+    def __init__(self, edge_id, sticker_id, parent=None):
         super().__init__(parent)
-        self.group_id = group_id  # 0-4 for the five groups
-        self.sticker_id = sticker_id  # 0-3 for the four stickers in each group
+        self.edge_id = edge_id      # 0-4 for the five edges
+        self.sticker_id = sticker_id  # 0-3 for the four stickers on each edge
         self.setFixedSize(30, 30)
         self.setColor(QColor(200, 200, 200))  # Default gray
         
@@ -52,7 +52,7 @@ class StarWidget(QWidget):
         # Create a 5-pointed star
         center = QPoint(50, 50)
         outer_radius = 45
-        inner_radius = 18
+        inner_radius = 20
         
         star_path = QPainterPath()
         for i in range(5):
@@ -76,7 +76,7 @@ class StarWidget(QWidget):
         painter.drawPath(star_path)
 
 class PentagonalFaceWidget(QWidget):
-    """Widget representing a pentagonal face with a black star and 5 groups of 4 stickers each."""
+    """Widget representing a pentagonal face with 5 edges, 4 stickers per edge."""
     
     def __init__(self, face_id, on_sticker_clicked_callback, parent=None):
         super().__init__(parent)
@@ -87,7 +87,7 @@ class PentagonalFaceWidget(QWidget):
         self._setup_pentagonal_layout()
     
     def _setup_pentagonal_layout(self):
-        """Create the Master Kilominx layout with star center."""
+        """Create the Master Kilominx layout with 20 stickers."""
         layout = QVBoxLayout(self)
         
         # Create a container for absolute positioning
@@ -102,72 +102,69 @@ class PentagonalFaceWidget(QWidget):
         star_widget = StarWidget(container)
         star_widget.move(center_x - 50, center_y - 50)
         
-        # Create 5 groups of 4 stickers each, one group on each side of the star
-        for group in range(5):
-            # Calculate the angle for this group (aligned with star points)
-            angle = group * 2 * math.pi / 5 - math.pi / 2  # Start from top
+        # Create 5 edges, each with 4 stickers
+        for edge in range(5):
+            angle = edge * 2 * math.pi / 5 - math.pi / 2  # Start from top
             
-            # Position stickers for this group
-            # Each group contains: corner, edge, side trapezoid, inner trapezoid
+            # For each edge, position 4 stickers in a trapezoidal pattern
+            # Arranged as: corner, edge, side, inner
             
-            # 1. Corner sticker - at the vertex of the pentagon
+            # 1. Corner sticker - outermost point of the pentagonal face
             corner_radius = 170
             corner_x = int(center_x + corner_radius * math.cos(angle) - 15)
             corner_y = int(center_y + corner_radius * math.sin(angle) - 15)
-            corner_sticker = PentagonalSticker(group, 0, container)
+            corner_sticker = PentagonalSticker(edge, 0, container)
             corner_sticker.move(corner_x, corner_y)
-            corner_sticker.clicked.connect(lambda checked, g=group, s=0: 
-                                        self.on_sticker_clicked(self.face_id, g, s))
+            corner_sticker.clicked.connect(lambda checked, e=edge, s=0: 
+                                        self.on_sticker_clicked(self.face_id, e, s))
             self.stickers.append(corner_sticker)
             
-            # 2. Edge sticker - between two corners
+            # 2. Edge sticker - along the pentagon edge
             edge_radius = 140
-            next_angle = (group + 1) * 2 * math.pi / 5 - math.pi / 2
+            next_angle = (edge + 1) * 2 * math.pi / 5 - math.pi / 2
             edge_angle = (angle + next_angle) / 2
             edge_x = int(center_x + edge_radius * math.cos(edge_angle) - 15)
             edge_y = int(center_y + edge_radius * math.sin(edge_angle) - 15)
-            edge_sticker = PentagonalSticker(group, 1, container)
+            edge_sticker = PentagonalSticker(edge, 1, container)
             edge_sticker.move(edge_x, edge_y)
-            edge_sticker.clicked.connect(lambda checked, g=group, s=1: 
-                                      self.on_sticker_clicked(self.face_id, g, s))
+            edge_sticker.clicked.connect(lambda checked, e=edge, s=1: 
+                                      self.on_sticker_clicked(self.face_id, e, s))
             self.stickers.append(edge_sticker)
             
-            # 3. Side trapezoid sticker - aligned with the star side
+            # 3. Side sticker - side of the trapezoid
             side_radius = 110
-            side_offset = math.pi / 10  # Slight offset to match star shape
+            side_offset = math.pi / 10  # Offset to position along the edge
             side_angle = angle + side_offset
             side_x = int(center_x + side_radius * math.cos(side_angle) - 15)
             side_y = int(center_y + side_radius * math.sin(side_angle) - 15)
-            side_sticker = PentagonalSticker(group, 2, container)
+            side_sticker = PentagonalSticker(edge, 2, container)
             side_sticker.move(side_x, side_y)
-            side_sticker.clicked.connect(lambda checked, g=group, s=2: 
-                                      self.on_sticker_clicked(self.face_id, g, s))
+            side_sticker.clicked.connect(lambda checked, e=edge, s=2: 
+                                      self.on_sticker_clicked(self.face_id, e, s))
             self.stickers.append(side_sticker)
             
-            # 4. Inner trapezoid sticker - closest to the star
+            # 4. Inner sticker - closest to the star
             inner_radius = 80
             inner_x = int(center_x + inner_radius * math.cos(angle) - 15)
             inner_y = int(center_y + inner_radius * math.sin(angle) - 15)
-            inner_sticker = PentagonalSticker(group, 3, container)
+            inner_sticker = PentagonalSticker(edge, 3, container)
             inner_sticker.move(inner_x, inner_y)
-            inner_sticker.clicked.connect(lambda checked, g=group, s=3: 
-                                       self.on_sticker_clicked(self.face_id, g, s))
+            inner_sticker.clicked.connect(lambda checked, e=edge, s=3: 
+                                       self.on_sticker_clicked(self.face_id, e, s))
             self.stickers.append(inner_sticker)
     
     def get_color_state(self):
         """Return the color state of all stickers."""
         return [sticker.getColor().getRgb()[:3] for sticker in self.stickers]
     
-    def set_sticker_color(self, group_id, sticker_id, color):
+    def set_sticker_color(self, edge_id, sticker_id, color):
         """Set the color of a specific sticker."""
-        # Each group has 4 stickers, so we can calculate the index
-        sticker_idx = group_id * 4 + sticker_id
-        
-        if 0 <= sticker_idx < len(self.stickers):
-            self.stickers[sticker_idx].setColor(color)
+        sticker_index = edge_id * 4 + sticker_id
+        if 0 <= sticker_index < len(self.stickers):
+            self.stickers[sticker_index].setColor(color)
 
 class MasterKilominxColorPicker(QWidget):
-    """Color picker widget for Master Kilominx with black star center and 20 stickers per face."""
+    """Color picker widget for Master Kilominx with 20 stickers per face."""
     
     state_ready = pyqtSignal(dict)
     
@@ -204,7 +201,8 @@ class MasterKilominxColorPicker(QWidget):
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Each face has 5 groups of 4 stickers arranged around a black star mechanism."
+            "Each face has 5 edges around a black star mechanism, with 4 stickers per edge. "
+            "Total: 20 stickers per face."
         )
         instructions.setWordWrap(True)
         main_layout.addWidget(instructions)
@@ -299,10 +297,10 @@ class MasterKilominxColorPicker(QWidget):
         for i, face_widget in enumerate(self.face_widgets):
             face_widget.setVisible(i == index)
             
-    def _on_sticker_clicked(self, face_id, group_id, sticker_id):
+    def _on_sticker_clicked(self, face_id, edge_id, sticker_id):
         """Handle sticker click to apply current color."""
         if face_id == self.current_face:
-            self.face_widgets[face_id].set_sticker_color(group_id, sticker_id, self.current_color)
+            self.face_widgets[face_id].set_sticker_color(edge_id, sticker_id, self.current_color)
         
     def _on_solve_clicked(self):
         """Prepare the cube state and emit the state_ready signal."""
