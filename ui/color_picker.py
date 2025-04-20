@@ -1,6 +1,6 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
-Layout: Pentagon center (mechanism) + 5 edge pieces with 4 stickers each = 20 stickers.
+Layout: Small black pentagon center (mechanism) + 5 edge pieces with 4 stickers each = 20 stickers.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
@@ -34,24 +34,24 @@ class PentagonalSticker(QPushButton):
         return self.color
 
 class PentagonWidget(QWidget):
-    """Widget that displays a pentagon in the center."""
+    """Widget that displays a small black pentagon in the center."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(80, 80)
+        self.setFixedSize(50, 50)  # Smaller size
         
     def paintEvent(self, event):
-        """Draw a pentagon."""
+        """Draw a black pentagon."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
-        # Set black fill and gray outline for the pentagon
-        painter.setBrush(QColor(50, 50, 50))
-        painter.setPen(QPen(QColor(128, 128, 128), 2))
+        # Set black fill and no outline for the pentagon
+        painter.setBrush(QColor(0, 0, 0))  # Pure black
+        painter.setPen(Qt.NoPen)  # No outline
         
         # Create a pentagon
-        center = QPoint(40, 40)
-        radius = 35
+        center = QPoint(25, 25)
+        radius = 20  # Smaller radius
         
         pentagon_path = QPainterPath()
         for i in range(5):
@@ -90,9 +90,9 @@ class PentagonalFaceWidget(QWidget):
         # Center of the pentagon
         center_x, center_y = 200, 200
         
-        # Add the pentagon mechanism (visual only, not interactive)
+        # Add the small black pentagon mechanism (visual only, not interactive)
         pentagon_widget = PentagonWidget(container)
-        pentagon_widget.move(center_x - 40, center_y - 40)
+        pentagon_widget.move(center_x - 25, center_y - 25)  # Center the smaller pentagon
         
         # Create 5 edges, each with 4 stickers
         for edge in range(5):
@@ -128,7 +128,7 @@ class PentagonalFaceWidget(QWidget):
             self.stickers.append(outer_edge_sticker)
             
             # 3. Inner edge sticker - midway between outer edge and center
-            inner_edge_radius = 110
+            inner_edge_radius = 100
             inner_edge_x = int(center_x + inner_edge_radius * math.cos(edge_angle) - 15)
             inner_edge_y = int(center_y + inner_edge_radius * math.sin(edge_angle) - 15)
             inner_edge_sticker = PentagonalSticker(edge, 2, container)
@@ -138,7 +138,7 @@ class PentagonalFaceWidget(QWidget):
             self.stickers.append(inner_edge_sticker)
             
             # 4. Center edge sticker - closest to the central pentagon
-            center_edge_radius = 80
+            center_edge_radius = 60  # Adjusted to leave space for the smaller pentagon
             center_edge_x = int(center_x + center_edge_radius * math.cos(base_angle) - 15)
             center_edge_y = int(center_y + center_edge_radius * math.sin(base_angle) - 15)
             center_edge_sticker = PentagonalSticker(edge, 3, container)
@@ -195,7 +195,7 @@ class MasterKilominxColorPicker(QWidget):
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Each face has 5 edges around a central pentagon mechanism, with 4 stickers per edge. "
+            "Each face has 5 edges around a small black pentagon mechanism, with 4 stickers per edge. "
             "Total: 20 stickers per face."
         )
         instructions.setWordWrap(True)
