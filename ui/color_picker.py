@@ -4,7 +4,7 @@ Widget for manually inputting the colors of the Master Kilominx faces.
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
                            QLabel, QVBoxLayout, QHBoxLayout, QGroupBox,
-                           QScrollArea, QSizePolicy)
+                           QScrollArea, QSizePolicy, QFrame)
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -57,6 +57,7 @@ class ColorPickerWidget(QWidget):
         self.current_color = QColor(255, 255, 255)  # Start with white
         self.current_face = 0  # Start with face 0
         self.face_buttons = []
+        self.face_frames = []  # NEW: Keep track of face frames/containers
         
         self._setup_ui()
         
@@ -126,20 +127,16 @@ class ColorPickerWidget(QWidget):
         main_layout.addLayout(face_selector_layout)
         
         # Face grid (4x4 for Master Kilominx)
-        # Use a scroll area in case the window is too small
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
+        face_container = QWidget()
+        self.face_layout = QVBoxLayout(face_container)
+        self.face_layout.setContentsMargins(0, 0, 0, 0)
         
-        face_group = QGroupBox("Current Face")
-        face_layout = QGridLayout()
-        
-        # Create a 4x4 grid for each face
+        # Create a 4x4 grid for each face - NEW: Using QFrame for each face
         for face in range(12):
+            face_frame = QFrame()
+            face_frame_layout = QGridLayout(face_frame)
+            face_frame_layout.setSpacing(2)
             face_buttons = []
-            face_widget = QWidget()
-            face_grid = QGridLayout(face_widget)
             
             for row in range(4):
                 row_buttons = []
@@ -147,19 +144,21 @@ class ColorPickerWidget(QWidget):
                     btn = ColorButton()
                     btn.clicked.connect(lambda checked, r=row, c=col, f=face: 
                                        self._set_sticker_color(f, r, c))
-                    face_grid.addWidget(btn, row, col)
+                    face_frame_layout.addWidget(btn, row, col)
                     row_buttons.append(btn)
                 face_buttons.append(row_buttons)
             
             self.face_buttons.append(face_buttons)
-            face_widget.setLayout(face_grid)
+            self.face_frames.append(face_frame)
             
-            # Only show the first face initially
-            face_widget.setVisible(face == 0)
-            scroll_layout.addWidget(face_widget)
+            # Initially hide all faces except the first
+            face_frame.setVisible(face == 0)
+            self.face_layout.addWidget(face_frame)
             
-        scroll_content.setLayout(scroll_layout)
-        scroll_area.setWidget(scroll_content)
+        # Add the face container to the main layout with a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(face_container)
         main_layout.addWidget(scroll_area, 1)
         
         # Solve button
@@ -178,11 +177,9 @@ class ColorPickerWidget(QWidget):
         """Switch between faces of the Master Kilominx."""
         self.current_face = index
         
-        # Update visibility of face widgets
-        for i, face_buttons in enumerate(self.face_buttons):
-            for row_buttons in face_buttons:
-                for button in row_buttons:
-                    button.setVisible(i == index)
+        # Update visibility of face frames
+        for i, face_frame in enumerate(self.face_frames):
+            face_frame.setVisible(i == index)
         
     def _set_sticker_color(self, face, row, col):
         """Set the color of a sticker on the current face."""
