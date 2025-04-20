@@ -1,12 +1,12 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
-Correct layout: 5 groups of 4 stickers each, with black center mechanism (not counted).
+Layout: Black star center with 5 groups of 4 stickers each.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
                            QLabel, QVBoxLayout, QHBoxLayout, QGroupBox,
                            QScrollArea, QSizePolicy, QFrame)
-from PyQt5.QtGui import QColor, QPalette, QPainter, QPolygon
+from PyQt5.QtGui import QColor, QPalette, QPainter, QPolygon, QPainterPath
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 import math
 
@@ -33,8 +33,50 @@ class PentagonalSticker(QPushButton):
         """Get the button's current color."""
         return self.color
 
+class StarWidget(QWidget):
+    """Widget that displays a black star in the center."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(100, 100)
+        
+    def paintEvent(self, event):
+        """Draw a 5-pointed star."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Set black color for the star
+        painter.setBrush(QColor(0, 0, 0))
+        painter.setPen(Qt.NoPen)
+        
+        # Create a 5-pointed star
+        center = QPoint(50, 50)
+        outer_radius = 45
+        inner_radius = 18
+        
+        star_path = QPainterPath()
+        for i in range(5):
+            # Outer point
+            outer_angle = i * 2 * math.pi / 5 - math.pi / 2
+            outer_x = center.x() + outer_radius * math.cos(outer_angle)
+            outer_y = center.y() + outer_radius * math.sin(outer_angle)
+            
+            if i == 0:
+                star_path.moveTo(outer_x, outer_y)
+            else:
+                star_path.lineTo(outer_x, outer_y)
+            
+            # Inner point
+            inner_angle = (i + 0.5) * 2 * math.pi / 5 - math.pi / 2
+            inner_x = center.x() + inner_radius * math.cos(inner_angle)
+            inner_y = center.y() + inner_radius * math.sin(inner_angle)
+            star_path.lineTo(inner_x, inner_y)
+        
+        star_path.closeSubpath()
+        painter.drawPath(star_path)
+
 class PentagonalFaceWidget(QWidget):
-    """Widget representing a pentagonal face with 5 groups of 4 stickers each."""
+    """Widget representing a pentagonal face with a black star and 5 groups of 4 stickers each."""
     
     def __init__(self, face_id, on_sticker_clicked_callback, parent=None):
         super().__init__(parent)
@@ -45,7 +87,7 @@ class PentagonalFaceWidget(QWidget):
         self._setup_pentagonal_layout()
     
     def _setup_pentagonal_layout(self):
-        """Create the accurate Master Kilominx layout."""
+        """Create the Master Kilominx layout with star center."""
         layout = QVBoxLayout(self)
         
         # Create a container for absolute positioning
@@ -56,24 +98,20 @@ class PentagonalFaceWidget(QWidget):
         # Center of the pentagon
         center_x, center_y = 200, 200
         
-        # Add the black center mechanism (visual only, not interactive)
-        center_mechanism = QLabel(container)
-        center_mechanism.setFixedSize(60, 60)
-        center_mechanism.move(center_x - 30, center_y - 30)
-        center_mechanism.setStyleSheet("background-color: black; border-radius: 30px;")
+        # Add the black star mechanism (visual only, not interactive)
+        star_widget = StarWidget(container)
+        star_widget.move(center_x - 50, center_y - 50)
         
-        # Create 5 groups of 4 stickers each
+        # Create 5 groups of 4 stickers each, one group on each side of the star
         for group in range(5):
-            # Calculate the angle for this group
+            # Calculate the angle for this group (aligned with star points)
             angle = group * 2 * math.pi / 5 - math.pi / 2  # Start from top
             
-            # Radii for different sticker positions within the group
-            corner_radius = 160      # Corner sticker
-            edge_radius = 130        # Edge sticker
-            side_radius = 100        # Side sticker of trapezoid
-            inner_radius = 70        # Inner sticker of trapezoid
+            # Position stickers for this group
+            # Each group contains: corner, edge, side trapezoid, inner trapezoid
             
             # 1. Corner sticker - at the vertex of the pentagon
+            corner_radius = 170
             corner_x = int(center_x + corner_radius * math.cos(angle) - 15)
             corner_y = int(center_y + corner_radius * math.sin(angle) - 15)
             corner_sticker = PentagonalSticker(group, 0, container)
@@ -83,6 +121,7 @@ class PentagonalFaceWidget(QWidget):
             self.stickers.append(corner_sticker)
             
             # 2. Edge sticker - between two corners
+            edge_radius = 140
             next_angle = (group + 1) * 2 * math.pi / 5 - math.pi / 2
             edge_angle = (angle + next_angle) / 2
             edge_x = int(center_x + edge_radius * math.cos(edge_angle) - 15)
@@ -93,16 +132,20 @@ class PentagonalFaceWidget(QWidget):
                                       self.on_sticker_clicked(self.face_id, g, s))
             self.stickers.append(edge_sticker)
             
-            # 3. Side sticker - side piece of the trapezoid
-            side_left_x = int(center_x + side_radius * math.cos(angle - math.pi/10) - 15)
-            side_left_y = int(center_y + side_radius * math.sin(angle - math.pi/10) - 15)
+            # 3. Side trapezoid sticker - aligned with the star side
+            side_radius = 110
+            side_offset = math.pi / 10  # Slight offset to match star shape
+            side_angle = angle + side_offset
+            side_x = int(center_x + side_radius * math.cos(side_angle) - 15)
+            side_y = int(center_y + side_radius * math.sin(side_angle) - 15)
             side_sticker = PentagonalSticker(group, 2, container)
-            side_sticker.move(side_left_x, side_left_y)
+            side_sticker.move(side_x, side_y)
             side_sticker.clicked.connect(lambda checked, g=group, s=2: 
                                       self.on_sticker_clicked(self.face_id, g, s))
             self.stickers.append(side_sticker)
             
-            # 4. Inner sticker - inner piece of the trapezoid
+            # 4. Inner trapezoid sticker - closest to the star
+            inner_radius = 80
             inner_x = int(center_x + inner_radius * math.cos(angle) - 15)
             inner_y = int(center_y + inner_radius * math.sin(angle) - 15)
             inner_sticker = PentagonalSticker(group, 3, container)
@@ -124,7 +167,7 @@ class PentagonalFaceWidget(QWidget):
             self.stickers[sticker_idx].setColor(color)
 
 class MasterKilominxColorPicker(QWidget):
-    """Color picker widget for Master Kilominx with 20 stickers per face."""
+    """Color picker widget for Master Kilominx with black star center and 20 stickers per face."""
     
     state_ready = pyqtSignal(dict)
     
@@ -161,8 +204,7 @@ class MasterKilominxColorPicker(QWidget):
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Each face has 5 groups of 4 stickers each (20 stickers total). "
-            "The black center is not a sticker - it's the mechanism."
+            "Each face has 5 groups of 4 stickers arranged around a black star mechanism."
         )
         instructions.setWordWrap(True)
         main_layout.addWidget(instructions)
