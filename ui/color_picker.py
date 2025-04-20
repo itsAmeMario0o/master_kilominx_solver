@@ -1,6 +1,6 @@
 """
 Widget for manually inputting the colors of the Master Kilominx faces.
-Revised for proper 20-sticker pentagonal face layout.
+Accurate layout matching the real puzzle.
 """
 
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QPushButton, QComboBox,
@@ -13,10 +13,11 @@ import math
 class PentagonalSticker(QPushButton):
     """Button representing a sticker on the Kilominx pentagonal face."""
     
-    def __init__(self, position_type, parent=None):
+    def __init__(self, position_type, section_id=None, parent=None):
         super().__init__(parent)
-        self.position_type = position_type  # corner, edge, middle_edge, center_piece, super_center
-        self.setFixedSize(40, 40)
+        self.position_type = position_type  # 'center', 'corner', 'edge', 'trapezoid'
+        self.section_id = section_id  # 0-4 for the five sections (not applicable for center)
+        self.setFixedSize(30, 30)
         self.setColor(QColor(200, 200, 200))  # Default gray
         
     def setColor(self, color):
@@ -33,133 +34,93 @@ class PentagonalSticker(QPushButton):
         return self.color
 
 class PentagonalFaceWidget(QWidget):
-    """Widget representing a pentagonal face with proper sticker layout."""
+    """Widget representing a pentagonal face with accurate Master Kilominx layout."""
     
     def __init__(self, face_id, on_sticker_clicked_callback, parent=None):
         super().__init__(parent)
         self.face_id = face_id
         self.on_sticker_clicked = on_sticker_clicked_callback
         self.stickers = []
-        self.setMinimumSize(300, 300)
+        self.setMinimumSize(400, 400)
         self._setup_pentagonal_layout()
     
     def _setup_pentagonal_layout(self):
-        """Create a proper pentagonal layout with 20 stickers:
-        - 5 corners (on the pentagon vertices)
-        - 5 edges (along the pentagon edges)
-        - 5 middle edges (inside the edges)
-        - 5 center pieces (forming a smaller pentagon)
-        - 1 super center (in the middle)
-        """
+        """Create the accurate Master Kilominx layout."""
         layout = QVBoxLayout(self)
         
         # Create a container for absolute positioning
         container = QWidget()
-        container.setFixedSize(300, 300)
+        container.setFixedSize(400, 400)
         layout.addWidget(container)
         
         # Center of the pentagon
-        center_x, center_y = 150, 150
-        radius = 110  # Main pentagon radius
+        center_x, center_y = 200, 200
         
-        # Create stickers in layers from outer to inner
+        # Radii for different layers
+        corner_radius = 140      # Outer corners
+        edge_radius = 110        # Edges of the pentagon
+        trapezoid_radius = 70    # Trapezoid pieces
         
-        # 1. Corner stickers (5) - on pentagon vertices
-        for i in range(5):
-            angle = i * 2 * math.pi / 5 - math.pi / 2  # Start from top
-            x = int(center_x + radius * math.cos(angle))
-            y = int(center_y + radius * math.sin(angle))
-            
-            sticker = PentagonalSticker('corner', container)
-            sticker.move(x-20, y-20)
-            sticker.clicked.connect(lambda checked, idx=i: 
-                                  self.on_sticker_clicked(self.face_id, 'corner', idx))
-            self.stickers.append(sticker)
+        # 1. Center sticker - large pentagon in the middle
+        center_sticker = PentagonalSticker('center', None, container)
+        center_sticker.setFixedSize(60, 60)
+        center_sticker.move(center_x - 30, center_y - 30)
+        center_sticker.clicked.connect(lambda checked: 
+                                     self.on_sticker_clicked(self.face_id, 'center', 0))
+        self.stickers.append(center_sticker)
         
-        # 2. Edge stickers (5) - midpoints between corners
-        for i in range(5):
-            angle_start = i * 2 * math.pi / 5 - math.pi / 2
-            angle_end = (i + 1) * 2 * math.pi / 5 - math.pi / 2
+        # Create 5 sections (trapezoids) around the center
+        for section in range(5):
+            # Calculate the angle for this section
+            angle = section * 2 * math.pi / 5 - math.pi / 2  # Start from top
             
-            x1 = center_x + radius * math.cos(angle_start)
-            y1 = center_y + radius * math.sin(angle_start)
-            x2 = center_x + radius * math.cos(angle_end)
-            y2 = center_y + radius * math.sin(angle_end)
+            # 2. Corner sticker - at the vertex of the pentagon
+            corner_x = int(center_x + corner_radius * math.cos(angle) - 15)
+            corner_y = int(center_y + corner_radius * math.sin(angle) - 15)
+            corner_sticker = PentagonalSticker('corner', section, container)
+            corner_sticker.move(corner_x, corner_y)
+            corner_sticker.clicked.connect(lambda checked, s=section: 
+                                        self.on_sticker_clicked(self.face_id, 'corner', s))
+            self.stickers.append(corner_sticker)
             
-            x = int((x1 + x2) / 2)
-            y = int((y1 + y2) / 2)
+            # 3. Edge sticker - between two corners
+            next_angle = (section + 1) * 2 * math.pi / 5 - math.pi / 2
+            edge_angle = (angle + next_angle) / 2
+            edge_x = int(center_x + edge_radius * math.cos(edge_angle) - 15)
+            edge_y = int(center_y + edge_radius * math.sin(edge_angle) - 15)
+            edge_sticker = PentagonalSticker('edge', section, container)
+            edge_sticker.move(edge_x, edge_y)
+            edge_sticker.clicked.connect(lambda checked, s=section: 
+                                       self.on_sticker_clicked(self.face_id, 'edge', s))
+            self.stickers.append(edge_sticker)
             
-            sticker = PentagonalSticker('edge', container)
-            sticker.move(x-20, y-20)
-            sticker.clicked.connect(lambda checked, idx=i: 
-                                  self.on_sticker_clicked(self.face_id, 'edge', idx))
-            self.stickers.append(sticker)
-        
-        # 3. Middle edge stickers (5) - closer to center than edges
-        inner_radius = radius * 0.6
-        for i in range(5):
-            angle_start = i * 2 * math.pi / 5 - math.pi / 2
-            angle_end = (i + 1) * 2 * math.pi / 5 - math.pi / 2
-            
-            x1 = center_x + inner_radius * math.cos(angle_start)
-            y1 = center_y + inner_radius * math.sin(angle_start)
-            x2 = center_x + inner_radius * math.cos(angle_end)
-            y2 = center_y + inner_radius * math.sin(angle_end)
-            
-            x = int((x1 + x2) / 2)
-            y = int((y1 + y2) / 2)
-            
-            sticker = PentagonalSticker('middle_edge', container)
-            sticker.move(x-20, y-20)
-            sticker.clicked.connect(lambda checked, idx=i: 
-                                  self.on_sticker_clicked(self.face_id, 'middle_edge', idx))
-            self.stickers.append(sticker)
-        
-        # 4. Center pieces (5) - forming a small pentagon around the super center
-        center_radius = radius * 0.3
-        for i in range(5):
-            angle = i * 2 * math.pi / 5 - math.pi / 2
-            x = int(center_x + center_radius * math.cos(angle))
-            y = int(center_y + center_radius * math.sin(angle))
-            
-            sticker = PentagonalSticker('center_piece', container)
-            sticker.move(x-20, y-20)
-            sticker.clicked.connect(lambda checked, idx=i: 
-                                  self.on_sticker_clicked(self.face_id, 'center_piece', idx))
-            self.stickers.append(sticker)
-        
-        # 5. Super center sticker (1) - in the middle
-        sticker = PentagonalSticker('super_center', container)
-        sticker.move(center_x-20, center_y-20)
-        sticker.clicked.connect(lambda checked: 
-                              self.on_sticker_clicked(self.face_id, 'super_center', 0))
-        self.stickers.append(sticker)
+            # 4. Trapezoid sticker - inner piece of the trapezoid section
+            trap_x = int(center_x + trapezoid_radius * math.cos(angle) - 15)
+            trap_y = int(center_y + trapezoid_radius * math.sin(angle) - 15)
+            trap_sticker = PentagonalSticker('trapezoid', section, container)
+            trap_sticker.move(trap_x, trap_y)
+            trap_sticker.clicked.connect(lambda checked, s=section: 
+                                       self.on_sticker_clicked(self.face_id, 'trapezoid', s))
+            self.stickers.append(trap_sticker)
     
     def get_color_state(self):
         """Return the color state of all stickers."""
         return [sticker.getColor().getRgb()[:3] for sticker in self.stickers]
     
-    def set_sticker_color(self, sticker_type, index, color):
+    def set_sticker_color(self, position_type, section_id, color):
         """Set the color of a specific sticker."""
-        # Map sticker type and index to the correct sticker in our list
-        if sticker_type == 'corner':
-            sticker_idx = index
-        elif sticker_type == 'edge':
-            sticker_idx = 5 + index
-        elif sticker_type == 'middle_edge':
-            sticker_idx = 10 + index
-        elif sticker_type == 'center_piece':
-            sticker_idx = 15 + index
-        elif sticker_type == 'super_center':
-            sticker_idx = 19  # Fixed index
-        else:
-            return
-        
-        if 0 <= sticker_idx < len(self.stickers):
-            self.stickers[sticker_idx].setColor(color)
+        # Find the sticker with matching position type and section
+        for sticker in self.stickers:
+            if position_type == 'center' and sticker.position_type == 'center':
+                sticker.setColor(color)
+                return
+            elif (sticker.position_type == position_type and 
+                  sticker.section_id == section_id):
+                sticker.setColor(color)
+                return
 
-class MasterKilominxColorPicker(QWidget):  # This is the class that's being imported
-    """Updated color picker widget for proper Master Kilominx with 20 stickers per face."""
+class MasterKilominxColorPicker(QWidget):
+    """Color picker widget for accurate Master Kilominx layout."""
     
     state_ready = pyqtSignal(dict)
     
@@ -167,15 +128,15 @@ class MasterKilominxColorPicker(QWidget):  # This is the class that's being impo
     COLORS = {
         "White": QColor(255, 255, 255),
         "Yellow": QColor(255, 255, 0),
-        "Red": QColor(255, 0, 0),
-        "Orange": QColor(255, 165, 0),
-        "Green": QColor(0, 128, 0),
         "Blue": QColor(0, 0, 255),
-        "Purple": QColor(128, 0, 128),
-        "Pink": QColor(255, 192, 203),
-        "Light Blue": QColor(173, 216, 230),
+        "Red": QColor(255, 0, 0),
+        "Green": QColor(0, 200, 0),
+        "Purple": QColor(150, 0, 150),
+        "Orange": QColor(255, 165, 0),
+        "Pink": QColor(255, 105, 180),
+        "Light Blue": QColor(0, 191, 255),
         "Light Green": QColor(144, 238, 144),
-        "Brown": QColor(165, 42, 42),
+        "Dark Green": QColor(0, 100, 0),
         "Gray": QColor(128, 128, 128)
     }
     
@@ -196,7 +157,7 @@ class MasterKilominxColorPicker(QWidget):  # This is the class that's being impo
         # Instructions
         instructions = QLabel(
             "Select a color from the palette, then click on the stickers to color them. "
-            "Each face has 20 stickers: 5 corners, 5 edges, 5 middle edges, 5 center pieces, and 1 super center."
+            "Each face has a center sticker and 5 trapezoid sections, each with a corner, edge, and trapezoid piece."
         )
         instructions.setWordWrap(True)
         main_layout.addWidget(instructions)
@@ -291,10 +252,10 @@ class MasterKilominxColorPicker(QWidget):  # This is the class that's being impo
         for i, face_widget in enumerate(self.face_widgets):
             face_widget.setVisible(i == index)
             
-    def _on_sticker_clicked(self, face_id, sticker_type, index):
+    def _on_sticker_clicked(self, face_id, position_type, section_id):
         """Handle sticker click to apply current color."""
         if face_id == self.current_face:
-            self.face_widgets[face_id].set_sticker_color(sticker_type, index, self.current_color)
+            self.face_widgets[face_id].set_sticker_color(position_type, section_id, self.current_color)
         
     def _on_solve_clicked(self):
         """Prepare the cube state and emit the state_ready signal."""
